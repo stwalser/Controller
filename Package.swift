@@ -4,19 +4,21 @@ import PackageDescription
 let package = Package(
     name: "ControllerVapor",
     platforms: [
-       .macOS(.v12)
+       .macOS(.v12),
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
         .package(url: "https://github.com/vapor/vapor.git", from: "4.0.0"),
         .package(url: "https://github.com/curuvar/SwiftyGPIO.git", from: "1.0.0"),
+        // .package(url: "https://github.com/PureSwift/BluetoothLinux.git", from: "5.0.0"),
     ],
     targets: [
         .target(
             name: "App",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
-                .product(name: "SwiftyGPIO", package: "SwiftyGPIO")
+                .product(name: "SwiftyGPIO", package: "SwiftyGPIO"),
+                // .product(name: "BluetoothLinux", package: "BluetoothLinux"),
             ],
             swiftSettings: [
                 // Enable better optimizations when building in Release configuration. Despite the use of

@@ -21,6 +21,8 @@ private let oneDegreeDistance = 0.205 * Double.pi / 360
 
 private let spacerInstruction = LowLevelInstruction(duration: 0.5, instructions: stopInstruction)
 
+private let autoProgramQueue = DispatchQueue(label: "com.rtplatform.autoProgramTimer")
+
 struct HighLevelInstruction: Content {
     init(type: DrivingType, duration: TimeInterval, direction: MotorDirection) {
         self.type = type
@@ -137,28 +139,35 @@ func parseAutoProgram(_ program: AutoProgram) {
 
 private var index = 0
 
-private func doAutoProgramStep() {
+private func doAutoProgramStep(_ ws: WebSocket) {
     if index == currentLLProgram!.count {
+        _ = ws.close(code: .goingAway)
         index = 0
         return
     }
+    
     let lowLevelInst = currentLLProgram![index]
     index += 1
     currentTarget = lowLevelInst.instructions
-    let autoProgramQueue = DispatchQueue(label: "com.rtplatform.autoProgramTimer")
+    
+    ws.send("\(Double(index) / Double(currentLLProgram!.count))")
+    
     autoProgramTimer = DispatchSource.makeTimerSource(queue: autoProgramQueue)
     autoProgramTimer!.schedule(deadline: .now() + lowLevelInst.duration, repeating: .never)
+    
     autoProgramTimer!.setEventHandler {
-        doAutoProgramStep()
+        doAutoProgramStep(ws)
     }
+    
     autoProgramTimer?.setCancelHandler {
         index = 0
     }
+    
     autoProgramTimer!.resume()
 }
 
-func startAutoRun() {
-    doAutoProgramStep()
+func startAutoRunAndUpdateVia(websocket ws: WebSocket) {
+    doAutoProgramStep(ws)
 }
 
 fileprivate func distanceFor(_ rpm: Double) -> Double {

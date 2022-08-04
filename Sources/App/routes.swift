@@ -23,7 +23,7 @@ func routes(_ app: Application) throws {
         await shell(args: "sudo", "shutdown", "now")
     }
     
-    app.webSocket("connect", shouldUpgrade: {req -> EventLoopFuture<HTTPHeaders?> in
+    app.webSocket("connect", shouldUpgrade: { req -> EventLoopFuture<HTTPHeaders?> in
         if !connectionActive && platformMode == .HTTPManual {
             connectionActive = true
             return req.eventLoop.makeSucceededFuture([:])
@@ -37,7 +37,7 @@ func routes(_ app: Application) throws {
         ws.onBinary { ws, bytes in
             do {
                 let instructionMessage = try JSONDecoder().decode(Instruction.self, from: bytes)
-
+                
                 if instructionMessage.side == .left {
                     currentTarget.0 = instructionMessage
                 } else {
@@ -54,36 +54,39 @@ func routes(_ app: Application) throws {
         }
     }
     
-    app.put("auto", "start") { _ -> HTTPStatus in
-        if platformMode == .HTTPAutomatic {
-            if currentLLProgram != nil {
-                startAutoRun()
-                return HTTPStatus.ok
-            } else {
-                return HTTPStatus.conflict
-            }
+    app.webSocket("auto", "start", shouldUpgrade: { req -> EventLoopFuture<HTTPHeaders?> in
+        if !connectionActive && platformMode == .HTTPAutomatic {
+            connectionActive = true
+            return req.eventLoop.makeSucceededFuture([:])
         } else {
-            return HTTPStatus.methodNotAllowed
+            return req.eventLoop.makeSucceededFuture(nil)
         }
-    }
-    
-    app.put("auto", "stop") { _ -> HTTPStatus in
-        if platformMode == .HTTPAutomatic && autoProgramTimer != nil {
-            if !autoProgramTimer!.isCancelled {
-                autoProgramTimer!.cancel()
-                autoProgramTimer = nil
-                stopVehicle()
-                return HTTPStatus.ok
-            } else {
-                return HTTPStatus.methodNotAllowed
-            }
+    }) { _, ws in
+        currentWebSocket = ws
+        
+        if currentLLProgram != nil {
+            startAutoRunAndUpdateVia(websocket: currentWebSocket!)
         } else {
-            return HTTPStatus.methodNotAllowed
+            _ = ws.close(code: .policyViolation)
+        }
+        
+        ws.onClose.whenComplete { result in
+            print("Closed")
+            if autoProgramTimer != nil {
+                if !autoProgramTimer!.isCancelled {
+                    autoProgramTimer!.cancel()
+                    autoProgramTimer = nil
+                    stopVehicle()
+                }
+            }
+            
+            currentWebSocket = nil
+            connectionActive = false
         }
     }
     
     app.put("auto", "program") { req -> HTTPStatus in
-        if platformMode == .HTTPAutomatic {
+        if platformMode == .HTTPAutomatic && !connectionActive {
             let autoProgram = try req.content.decode(AutoProgram.self)
             parseAutoProgram(autoProgram)
             return HTTPStatus.ok
@@ -92,16 +95,20 @@ func routes(_ app: Application) throws {
         }
     }
     
-    app.put("mode") { req -> PlatformMode in
-        let mode = try req.content.decode(PlatformMode.self)
-        platformMode = mode
-        if mode != .HTTPManual {
-            if let ws = currentWebSocket {
-                ws.close(promise: nil)
-                currentWebSocket = nil
-                connectionActive = false
+    app.put("mode") { req -> HTTPStatus in
+        if connectionActive {
+            let mode = try req.content.decode(PlatformMode.self)
+            platformMode = mode
+            if mode != .HTTPManual {
+                if let ws = currentWebSocket {
+                    ws.close(promise: nil)
+                    currentWebSocket = nil
+                    connectionActive = false
+                }
             }
+            return HTTPStatus.ok
+        } else {
+            return HTTPStatus.methodNotAllowed
         }
-        return mode
     }
 }
