@@ -37,7 +37,6 @@ func routes(_ app: Application) throws {
         ws.onBinary { ws, bytes in
             do {
                 let instructionMessage = try JSONDecoder().decode(Instruction.self, from: bytes)
-                
                 if instructionMessage.side == .left {
                     currentTarget.0 = instructionMessage
                 } else {
@@ -96,7 +95,6 @@ func routes(_ app: Application) throws {
     }
     
     app.put("mode") { req -> HTTPStatus in
-        if connectionActive {
             let mode = try req.content.decode(PlatformMode.self)
             platformMode = mode
             if mode != .HTTPManual {
@@ -107,8 +105,5 @@ func routes(_ app: Application) throws {
                 }
             }
             return HTTPStatus.ok
-        } else {
-            return HTTPStatus.methodNotAllowed
-        }
     }
 }
