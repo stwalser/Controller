@@ -118,7 +118,7 @@ enum MotorSide: Int, Codable {
 }
 
 /// An enumeration for the two sides
-enum MotorDirection: Int, Codable {
+enum MotorDirection: String, Codable {
     case forward
     case backward
 }

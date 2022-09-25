@@ -60,12 +60,12 @@ class GPIOController {
     func setDirectionAndMicrostepping(at side: MotorSide, to d: MotorDirection, and m: Double) {
         switch side {
         case .left:
-            gpios[directionPins.0]!.value = d.rawValue
+            gpios[directionPins.0]!.value = d == .forward ? 0 : 1;
             gpios[µStepping0Pins.0]!.value = µSteppingMapping[Int(log2(m))][0]
             gpios[µStepping1Pins.0]!.value = µSteppingMapping[Int(log2(m))][1]
             gpios[µStepping2Pins.0]!.value = µSteppingMapping[Int(log2(m))][2]
         case .right:
-            gpios[directionPins.1]!.value = d.rawValue
+            gpios[directionPins.1]!.value = d == .forward ? 0 : 1;
             gpios[µStepping0Pins.1]!.value = µSteppingMapping[Int(log2(m))][0]
             gpios[µStepping1Pins.1]!.value = µSteppingMapping[Int(log2(m))][1]
             gpios[µStepping2Pins.1]!.value = µSteppingMapping[Int(log2(m))][2]
