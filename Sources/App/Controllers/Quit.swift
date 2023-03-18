@@ -7,8 +7,7 @@
 
 import Foundation
 
-//TODO: Halt the vehicle
-
+/// Stops the vehicle
 func quit() -> Int {
     stopVehicle()
     return 1

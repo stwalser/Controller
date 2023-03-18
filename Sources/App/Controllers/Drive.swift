@@ -16,6 +16,7 @@ private let queue = DispatchQueue(label: "com.rtplatform.gpiocontrol")
 private var timer = DispatchSource.makeTimerSource(queue: queue)
 
 let gpioController = GPIOController()
+// Every 0.1 seconds the PWM signal is updated
 let PWMUpdateInterval = 0.1
 
 private let limitContrary = 50.0
@@ -31,6 +32,7 @@ func initializeDriveController() {
     timer.resume()
 }
 
+/// Reads the current target for either track, calcualtes the steps that are necessary to reach it, makes sure the RPM limits are respeceted, gets the microsteps and sets the pins and the PWM.
 func updatePWM() {
     if currentTarget.0 != nil {
         currentInstruction.0 = calculateNewIntermediateStep(from: currentInstruction.0, to: currentTarget.0!)
@@ -60,6 +62,7 @@ private func getStepsPerSecond(for rpm: Double, with microsteps: Double) -> Doub
     rpm / 60.0 * 200.0 * microsteps
 }
 
+/// These limits are necessaray to prevent the tracks from blocking.
 private func limitRPMs() {
     if currentInstruction.0.dir == currentInstruction.1.dir || currentInstruction.0.rpm == 0 || currentInstruction.1.rpm == 0 {
         currentInstruction.0.rpm = min(currentInstruction.0.rpm, currentInstruction.1.rpm + limitUnary)
@@ -119,8 +122,8 @@ enum MotorSide: Int, Codable {
 
 /// An enumeration for the two sides
 enum MotorDirection: String, Codable {
-    case forward
-    case backward
+    case forward = "Vorwärts"
+    case backward = "Rückwärts"
 }
 
 /// A struct that represents an instruction. Consist of Rpm and direction of the motor

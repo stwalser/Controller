@@ -16,6 +16,7 @@ var platformMode = PlatformMode.None {
     }
 }
 
+/// Steering mode of the platform
 enum PlatformMode: String, Content {
     case None
     case Bluetooth
